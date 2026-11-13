@@ -161,6 +161,9 @@ export class AcpSessionManager {
 
       const response = {
         sessionId,
+        ...(session.getConfigOptions().length
+          ? { configOptions: session.getConfigOptions() }
+          : {}),
         modes: {
           availableModes: buildAvailableModes(config.isPlanEnabled()),
           currentModeId: config.getApprovalMode(),
@@ -278,6 +281,9 @@ export class AcpSessionManager {
           availableModels,
           currentModelId,
         },
+        ...(session.getConfigOptions().length
+          ? { configOptions: session.getConfigOptions() }
+          : {}),
       };
 
       // Stream history back to client

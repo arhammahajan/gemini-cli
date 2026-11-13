@@ -233,4 +233,16 @@ export class GeminiAgent {
     }
     return session.setModel(params.modelId);
   }
+
+  async setSessionConfigOption(
+    params: acp.SetSessionConfigOptionRequest,
+  ): Promise<acp.SetSessionConfigOptionResponse> {
+    const session = this.sessionManager.getSession(params.sessionId);
+    if (!session)
+      throw new acp.RequestError(
+        -32602,
+        `Session not found: ${params.sessionId}`,
+      );
+    return session.setConfigOption(params.configId, params.value);
+  }
 }

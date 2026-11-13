@@ -28,6 +28,7 @@ import {
 import type * as acp from '@agentclientprotocol/sdk';
 import { z } from 'zod';
 import type { LoadedSettings } from '../config/settings.js';
+import { routerAvailableModels } from './modelRouterConfig.js';
 
 export function hasMeta(
   obj: unknown,
@@ -307,6 +308,10 @@ export function buildAvailableModels(
   currentModelId: string;
 } {
   const preferredModel = config.getModel() || GEMINI_MODEL_ALIAS_AUTO;
+  const routerModels = routerAvailableModels();
+  if (routerModels.length > 0) {
+    return { availableModels: routerModels, currentModelId: preferredModel };
+  }
   const shouldShowPreviewModels = config.getHasAccessToPreviewModel();
   const useGemini31 = config.getGemini31LaunchedSync?.() ?? false;
   const useLatestFlash = config.hasLatestFlashGAAccess?.() ?? false;

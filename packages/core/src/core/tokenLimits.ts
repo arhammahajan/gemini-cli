@@ -26,6 +26,7 @@ import {
   PREVIEW_GEMINI_MODEL,
   PREVIEW_GEMINI_MODEL_AUTO,
 } from '../config/models.js';
+import { getModelRouterCatalog } from '../config/modelRouterCatalog.js';
 
 type Model = string;
 type TokenCount = number;
@@ -35,6 +36,8 @@ export const DEFAULT_OUTPUT_TOKEN_LIMIT = 65_536;
 export const GEMMA_4_TOKEN_LIMIT = 256_000;
 
 export function tokenLimit(model: Model): TokenCount {
+  const configured = getModelRouterCatalog().get(model)?.contextWindow;
+  if (configured !== undefined) return configured;
   // Add other models as they become relevant or if specified by config
   // Pulled from https://ai.google.dev/gemini-api/docs/models
   switch (model) {
@@ -53,6 +56,8 @@ export function tokenLimit(model: Model): TokenCount {
 }
 
 export function outputTokenLimit(model: Model): TokenCount | undefined {
+  const configured = getModelRouterCatalog().get(model)?.maxOutputTokens;
+  if (configured !== undefined) return configured;
   // Add other models as they become relevant or if specified by config
   // Pulled from https://ai.google.dev/gemini-api/docs/models
   switch (model) {

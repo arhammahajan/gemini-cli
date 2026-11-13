@@ -81,6 +81,7 @@ import {
 } from '../telemetry/index.js';
 import { coreEvents, CoreEvent } from '../utils/events.js';
 import { tokenLimit } from '../core/tokenLimits.js';
+import { loadModelRouterCatalog } from './modelRouterCatalog.js';
 import {
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
@@ -1466,6 +1467,7 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   private async _initialize(): Promise<void> {
+    await loadModelRouterCatalog();
     await this.storage.initialize();
     ragLogger.initialize(this.storage.getProjectTempLogsDir());
 

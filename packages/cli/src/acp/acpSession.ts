@@ -58,6 +58,7 @@ import {
 } from './acpUtils.js';
 import { z } from 'zod';
 import { getAcpErrorMessage } from './acpErrors.js';
+import { ModelRouterSessionConfig } from './modelRouterConfig.js';
 
 const StructuredErrorSchema = z.object({
   status: z.number().optional(),
@@ -65,6 +66,7 @@ const StructuredErrorSchema = z.object({
 });
 
 export class Session {
+  private readonly routerConfig: ModelRouterSessionConfig;
   private pendingPrompt: AbortController | null = null;
   private commandHandler = new CommandHandler();
   private callIdCounter = 0;
@@ -81,6 +83,7 @@ export class Session {
     private readonly connection: acp.AgentSideConnection,
     private readonly settings: LoadedSettings,
   ) {
+    this.routerConfig = new ModelRouterSessionConfig(this.context.config);
     coreEvents.on(
       CoreEvent.ApprovalModeChanged,
       this.handleApprovalModeChanged,
@@ -259,9 +262,30 @@ export class Session {
     });
   }
 
-  setModel(modelId: acp.ModelId): acp.SetSessionModelResponse {
-    this.context.config.setModel(modelId);
+  async setModel(modelId: acp.ModelId): Promise<acp.SetSessionModelResponse> {
+    this.routerConfig.setModel(modelId);
+    if (this.getConfigOptions().length > 0) await this.publishConfigOptions();
     return {};
+  }
+
+  getConfigOptions(): acp.SessionConfigOption[] {
+    return this.routerConfig.getOptions();
+  }
+
+  private async publishConfigOptions(): Promise<void> {
+    await this.sendUpdate({
+      sessionUpdate: 'config_option_update',
+      configOptions: this.getConfigOptions(),
+    });
+  }
+
+  async setConfigOption(
+    configId: string,
+    value: string | boolean,
+  ): Promise<acp.SetSessionConfigOptionResponse> {
+    this.routerConfig.setOption(configId, value);
+    await this.publishConfigOptions();
+    return { configOptions: this.getConfigOptions() };
   }
 
   async streamHistory(messages: ConversationRecord['messages']): Promise<void> {
