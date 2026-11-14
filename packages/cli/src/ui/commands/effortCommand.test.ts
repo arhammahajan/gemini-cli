@@ -73,18 +73,9 @@ describe('/effort (alias /thinking)', () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows the current effort and only the selected model's published levels", () => {
+  it('opens a picker without arguments for either command name', () => {
     expect(effortCommand.action(context, '')).toMatchObject({
-      type: 'message',
-      messageType: 'info',
-      content: expect.stringContaining(
-        'Chat Model (chat): auto (upstream default)',
-      ),
-    });
-    expect(effortCommand.action(context, '')).toMatchObject({
-      content: expect.stringContaining(
-        'Supported efforts: auto, low, high, max',
-      ),
+      type: 'custom_dialog',
     });
     expect(effortCommand.altNames).toEqual(['thinking']);
   });
@@ -120,9 +111,7 @@ describe('/effort (alias /thinking)', () => {
         .generateContentConfig.httpOptions?.headers,
     ).toEqual({ 'x-model-router-reasoning-effort': 'xhigh' });
     config.setModel('chat');
-    expect(effortCommand.action(context, '')).toMatchObject({
-      content: expect.stringContaining('chat): max'),
-    });
+    expect(config.getModelRouterEffort()).toBe('max');
   });
 
   it('rejects unsupported levels without changing the previous valid value', () => {
@@ -159,8 +148,7 @@ describe('/effort (alias /thinking)', () => {
   it('explains unknown capabilities and permits only auto', () => {
     config.setModel('unknown');
     expect(effortCommand.action(context, '')).toMatchObject({
-      messageType: 'info',
-      content: expect.stringContaining('No effort levels are published'),
+      type: 'custom_dialog',
     });
     expect(effortCommand.completion(context, '')).toEqual(['auto']);
     expect(effortCommand.action(context, 'low')).toMatchObject({

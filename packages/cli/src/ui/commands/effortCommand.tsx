@@ -8,17 +8,22 @@ import {
   getModelRouterCatalog,
   type MessageActionReturn,
 } from '@google/gemini-cli-core';
-import { CommandKind, type SlashCommand } from './types.js';
+import {
+  CommandKind,
+  type SlashCommand,
+  type OpenCustomDialogActionReturn,
+} from './types.js';
+import { EffortDialog } from '../components/EffortDialog.js';
 
 export const effortCommand = {
   name: 'effort',
   altNames: ['thinking'],
   description:
-    "Show or set the selected router model's reasoning effort: /effort [level|auto]",
+    "Select the router model's reasoning effort: /effort [level|auto]",
   kind: CommandKind.BUILT_IN,
   autoExecute: true,
   showCompletionLoading: false,
-  action(context, args): MessageActionReturn {
+  action(context, args): MessageActionReturn | OpenCustomDialogActionReturn {
     const config = context.services.agentContext?.config;
     const model = config && getModelRouterCatalog().get(config.getModel());
     if (!config || !model) {
@@ -31,30 +36,28 @@ export const effortCommand = {
     }
 
     const value = args.trim();
-    if (value) {
-      try {
-        config.setModelRouterEffort(value);
-      } catch (error) {
-        return {
-          type: 'message',
-          messageType: 'error',
-          content: error instanceof Error ? error.message : String(error),
-        };
-      }
+    if (!value) {
+      return {
+        type: 'custom_dialog',
+        component: (
+          <EffortDialog config={config} onClose={context.ui.removeComponent} />
+        ),
+      };
+    }
+    try {
+      config.setModelRouterEffort(value);
+    } catch (error) {
+      return {
+        type: 'message',
+        messageType: 'error',
+        content: error instanceof Error ? error.message : String(error),
+      };
     }
     const current = config.getModelRouterEffort();
     return {
       type: 'message',
       messageType: 'info',
-      content: [
-        `Effort for ${model.name} (${model.id}): ${current === 'auto' ? 'auto (upstream default)' : current}.`,
-        `Supported efforts: ${['auto', ...model.efforts].join(', ')}.`,
-        ...(model.efforts.length === 0
-          ? [
-              'No effort levels are published for this model; only auto is available.',
-            ]
-          : []),
-      ].join('\n'),
+      content: `Effort for ${model.name} (${model.id}): ${current === 'auto' ? 'auto (upstream default)' : current}.`,
     };
   },
   completion(context, partialArg) {

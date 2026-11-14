@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EffortDialog > lists only the current model's exact levels and upstream default 1`] = `
+"╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│ Select Effort                                                                                    │
+│ Chat Model                                                                                       │
+│                                                                                                  │
+│ ● 1. Upstream default (auto) (current)                                                           │
+│      Use the model provider's default effort.                                                    │
+│   2. low                                                                                         │
+│   3. high                                                                                        │
+│   4. max                                                                                         │
+│                                                                                                  │
+│ Arrow keys to move, Enter to select, Esc to cancel                                               │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+"
+`;
