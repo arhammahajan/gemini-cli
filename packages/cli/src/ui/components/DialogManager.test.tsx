@@ -106,6 +106,7 @@ describe('DialogManager', () => {
   });
 
   const testCases: Array<[Partial<UIState>, string, Partial<QuotaState>?]> = [
+    [{ customDialog: <Text>CustomDialog</Text> }, 'CustomDialog'],
     [
       {
         showIdeRestartPrompt: true,

@@ -64,6 +64,9 @@ export const DialogManager = ({
     terminalWidth: uiTerminalWidth,
   } = uiState;
 
+  if (uiState.customDialog) {
+    return <>{uiState.customDialog}</>;
+  }
   if (uiState.adminSettingsChanged) {
     return <AdminSettingsChangedDialog />;
   }
