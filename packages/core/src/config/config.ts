@@ -1944,8 +1944,8 @@ export class Config implements McpContext, AgentLoopContext {
     return this.model;
   }
 
-  getModelRouterEffort(): string {
-    return this.modelRouterEfforts.get(this.model) ?? 'auto';
+  getModelRouterEffort(model: string = this.model): string {
+    return this.modelRouterEfforts.get(model) ?? 'auto';
   }
 
   setModelRouterEffort(effort: string): void {

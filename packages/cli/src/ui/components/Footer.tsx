@@ -12,6 +12,7 @@ import {
   shortenPath,
   tildeifyPath,
   getDisplayString,
+  getModelRouterCatalog,
   checkExhaustive,
   AuthType,
   UserAccountManager,
@@ -323,7 +324,10 @@ export const Footer: React.FC = () => {
         break;
       }
       case 'model-name': {
-        const str = getDisplayString(model);
+        const effort = getModelRouterCatalog().has(model)
+          ? ` [${config.getModelRouterEffort(model)}]`
+          : '';
+        const str = getDisplayString(model) + effort;
         addCol(
           id,
           header,

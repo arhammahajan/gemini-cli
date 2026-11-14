@@ -83,6 +83,7 @@ describe('model router effort in Config', () => {
     expect(config.getModelRouterEffort()).toBe('auto');
     expect(resolvedHeaders(config)).toBeUndefined();
     config.setModelRouterEffort('xhigh');
+    expect(config.getModelRouterEffort('chat')).toBe('max');
     expect(resolvedHeaders(config)).toEqual({
       'x-model-router-reasoning-effort': 'xhigh',
     });
