@@ -19,9 +19,11 @@ describe('router ACP configuration', () => {
   let current: string;
   let service: ModelConfigService;
   let session: ModelRouterSessionConfig;
+  let config: Config;
 
   beforeEach(async () => {
     vi.stubEnv('GEMINI_MODEL_ROUTER', '1');
+    vi.stubEnv('GEMINI_ACP_SHARED_EFFORT_CONTROL', '');
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -54,6 +56,7 @@ describe('router ACP configuration', () => {
                   },
                 },
               },
+              { id: 'unknown' },
             ],
           }),
         ),
@@ -64,13 +67,14 @@ describe('router ACP configuration', () => {
     service = new ModelConfigService({
       aliases: { 'chat-base': { modelConfig: {} } },
     });
-    session = new ModelRouterSessionConfig({
+    config = {
       getModel: () => current,
       setModel: (id: string) => {
         current = id;
       },
       getModelConfigService: () => service,
-    } as unknown as Config);
+    } as unknown as Config;
+    session = new ModelRouterSessionConfig(config);
   });
 
   afterEach(async () => {
@@ -84,13 +88,16 @@ describe('router ACP configuration', () => {
     expect(routerAvailableModels().map((model) => model.modelId)).toEqual([
       'chat',
       'response',
+      'unknown',
     ]);
     expect(routerAvailableModels().map((model) => model.name)).toEqual([
       'chat',
       'response',
+      'unknown',
     ]);
     expect(session.getOptions()[1]).toMatchObject({
       id: 'reasoning_effort',
+      category: 'thought_level',
       currentValue: 'auto',
       options: [
         { value: 'auto' },
@@ -112,6 +119,43 @@ describe('router ACP configuration', () => {
     });
   });
 
+  it('opts into a stable shared menu while validating the selected model', () => {
+    vi.stubEnv('GEMINI_ACP_SHARED_EFFORT_CONTROL', '1');
+    session = new ModelRouterSessionConfig(config);
+    const shared = session.getOptions()[1];
+    expect(shared).not.toHaveProperty('category');
+    expect(shared).toMatchObject({
+      id: 'reasoning_effort',
+      options: ['auto', 'none', 'low', 'medium', 'high', 'xhigh', 'max'].map(
+        (value) => ({ value }),
+      ),
+    });
+    session.setOption('reasoning_effort', 'max');
+    session.setModel('response');
+    expect(session.getOptions()[1]).toEqual(shared);
+    expect(() => session.setOption('reasoning_effort', 'max')).toThrow(
+      'Supported efforts: auto, none, low, medium, high, xhigh',
+    );
+    expect(() => session.assertValid()).toThrow('Unsupported');
+    session.setOption('reasoning_effort', 'xhigh');
+    expect(() => session.assertValid()).not.toThrow();
+    session.setModel('chat');
+    expect(session.getOptions()[1].currentValue).toBe('max');
+
+    session.setModel('unknown');
+    expect(session.getOptions()[1]).toEqual(shared);
+    expect(() => session.setOption('reasoning_effort', 'low')).toThrow(
+      'Supported efforts: auto.',
+    );
+    session.setOption('reasoning_effort', 'auto');
+    expect(() => session.assertValid()).not.toThrow();
+  });
+
+  it('hides model-specific effort when no vocabulary was published', () => {
+    session.setModel('unknown');
+    expect(session.getOptions()).toHaveLength(1);
+  });
+
   it('changes effort independently, rejects unsupported levels, and restores defaults', () => {
     session.setOption('reasoning_effort', 'max');
     const resolve = () =>
@@ -122,10 +166,14 @@ describe('router ACP configuration', () => {
     expect(() => session.setOption('reasoning_effort', 'medium')).toThrow(
       'Unsupported',
     );
+    expect(() => session.assertValid()).toThrow(
+      'Supported efforts: auto, low, high, max',
+    );
     expect(resolve().generateContentConfig.httpOptions?.headers).toEqual({
       'x-model-router-reasoning-effort': 'max',
     });
     session.setOption('reasoning_effort', 'auto');
+    expect(() => session.assertValid()).not.toThrow();
     expect(resolve().generateContentConfig.httpOptions).toBeUndefined();
   });
 });

@@ -359,6 +359,7 @@ export class Session {
   }
 
   async prompt(params: acp.PromptRequest): Promise<acp.PromptResponse> {
+    this.routerConfig.assertValid();
     this.pendingPrompt?.abort();
     const pendingSend = new AbortController();
     this.pendingPrompt = pendingSend;
