@@ -81,7 +81,10 @@ import {
 } from '../telemetry/index.js';
 import { coreEvents, CoreEvent } from '../utils/events.js';
 import { tokenLimit } from '../core/tokenLimits.js';
-import { loadModelRouterCatalog } from './modelRouterCatalog.js';
+import {
+  getModelRouterCatalog,
+  loadModelRouterCatalog,
+} from './modelRouterCatalog.js';
 import {
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
@@ -787,6 +790,7 @@ export class Config implements McpContext, AgentLoopContext {
   private contentGeneratorConfig!: ContentGeneratorConfig;
   private contentGenerator!: ContentGenerator;
   readonly modelConfigService: ModelConfigService;
+  private readonly modelRouterEfforts = new Map<string, string>();
   private readonly embeddingModel: string;
   private readonly sandbox: SandboxConfig | undefined;
   private _sandboxForbiddenPaths: string[] | undefined;
@@ -1938,6 +1942,40 @@ export class Config implements McpContext, AgentLoopContext {
 
   getModel(): string {
     return this.model;
+  }
+
+  getModelRouterEffort(): string {
+    return this.modelRouterEfforts.get(this.model) ?? 'auto';
+  }
+
+  setModelRouterEffort(effort: string): void {
+    const model = this.getModel();
+    const metadata = getModelRouterCatalog().get(model);
+    if (!metadata) {
+      throw new Error(`Model ${model} is not in the model router catalog.`);
+    }
+    if (effort !== 'auto' && !metadata.efforts.includes(effort)) {
+      throw new Error(
+        `Unsupported reasoning_effort=${effort} for ${model}. Supported efforts: ${['auto', ...metadata.efforts].join(', ')}.`,
+      );
+    }
+    this.modelConfigService.registerRuntimeModelConfig(model, {
+      extends: 'chat-base',
+      modelConfig: {
+        model,
+        generateContentConfig: {
+          thinkingConfig: { includeThoughts: true },
+          ...(effort === 'auto'
+            ? {}
+            : {
+                httpOptions: {
+                  headers: { 'x-model-router-reasoning-effort': effort },
+                },
+              }),
+        },
+      },
+    });
+    this.modelRouterEfforts.set(model, effort);
   }
 
   getDisableLoopDetection(): boolean {

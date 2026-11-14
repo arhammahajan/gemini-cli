@@ -27,7 +27,6 @@ export function routerAvailableModels() {
 }
 
 export class ModelRouterSessionConfig {
-  private readonly efforts = new Map<string, string>();
   private validationError: string | undefined;
   // T3 discovers only the default model. An uncategorized control is shared
   // across its catalog; other ACP clients retain exact per-model menus.
@@ -82,7 +81,7 @@ export class ModelRouterSessionConfig {
         description: this.sharedEffortControl
           ? 'Combined router effort choices. Unsupported values are rejected for the selected model; Upstream default works for every model.'
           : 'Reasoning effort advertised by the selected router model.',
-        currentValue: this.efforts.get(current) ?? 'auto',
+        currentValue: this.config.getModelRouterEffort(),
         options: [
           { value: 'auto', name: 'Upstream default' },
           ...efforts.map((value) => ({ value, name: value })),
@@ -100,7 +99,9 @@ export class ModelRouterSessionConfig {
     }
     this.config.setModel(modelId);
     this.validationError = undefined;
-    if (getModelRouterCatalog().has(modelId)) this.applyEffort(modelId);
+    if (getModelRouterCatalog().has(modelId)) {
+      this.config.setModelRouterEffort(this.config.getModelRouterEffort());
+    }
   }
 
   setOption(id: string, value: string | boolean): void {
@@ -110,41 +111,18 @@ export class ModelRouterSessionConfig {
       this.setModel(value);
       return;
     }
-    const model = this.config.getModel();
-    const metadata = getModelRouterCatalog().get(model);
-    if (
-      id !== 'reasoning_effort' ||
-      !metadata ||
-      (value !== 'auto' && !metadata.efforts.includes(value))
-    ) {
-      const message = `Unsupported ${id}=${value} for ${model}. Supported efforts: auto${metadata?.efforts.length ? ', ' + metadata.efforts.join(', ') : ''}.`;
+    if (id !== 'reasoning_effort') {
+      throw new acp.RequestError(-32602, `Unknown router option: ${id}`);
+    }
+    try {
+      this.config.setModelRouterEffort(value);
+    } catch (error) {
       // Some ACP clients ignore set-option failures. Never let a rejected
       // effort silently turn into a generation with the previous/default one.
-      if (id === 'reasoning_effort') this.validationError = message;
-      throw new acp.RequestError(-32602, message);
+      this.validationError =
+        error instanceof Error ? error.message : String(error);
+      throw new acp.RequestError(-32602, this.validationError);
     }
     this.validationError = undefined;
-    this.efforts.set(model, value);
-    this.applyEffort(model);
-  }
-
-  private applyEffort(model: string): void {
-    const effort = this.efforts.get(model) ?? 'auto';
-    this.config.getModelConfigService().registerRuntimeModelConfig(model, {
-      extends: 'chat-base',
-      modelConfig: {
-        model,
-        generateContentConfig: {
-          thinkingConfig: { includeThoughts: true },
-          ...(effort === 'auto'
-            ? {}
-            : {
-                httpOptions: {
-                  headers: { 'x-model-router-reasoning-effort': effort },
-                },
-              }),
-        },
-      },
-    });
   }
 }

@@ -6,8 +6,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  type Config,
-  ModelConfigService,
+  Config,
+  type ModelConfigService,
   loadModelRouterCatalog,
 } from '@google/gemini-cli-core';
 import {
@@ -16,7 +16,6 @@ import {
 } from './modelRouterConfig.js';
 
 describe('router ACP configuration', () => {
-  let current: string;
   let service: ModelConfigService;
   let session: ModelRouterSessionConfig;
   let config: Config;
@@ -63,17 +62,17 @@ describe('router ACP configuration', () => {
       ),
     );
     await loadModelRouterCatalog();
-    current = 'chat';
-    service = new ModelConfigService({
-      aliases: { 'chat-base': { modelConfig: {} } },
-    });
-    config = {
-      getModel: () => current,
-      setModel: (id: string) => {
-        current = id;
+    config = new Config({
+      sessionId: 'router-acp-test',
+      targetDir: process.cwd(),
+      cwd: process.cwd(),
+      model: 'chat',
+      debugMode: false,
+      modelConfigServiceConfig: {
+        aliases: { 'chat-base': { modelConfig: {} } },
       },
-      getModelConfigService: () => service,
-    } as unknown as Config;
+    });
+    service = config.getModelConfigService();
     session = new ModelRouterSessionConfig(config);
   });
 
@@ -159,7 +158,10 @@ describe('router ACP configuration', () => {
   it('changes effort independently, rejects unsupported levels, and restores defaults', () => {
     session.setOption('reasoning_effort', 'max');
     const resolve = () =>
-      service.getResolvedConfig({ model: current, isChatModel: true });
+      service.getResolvedConfig({
+        model: config.getModel(),
+        isChatModel: true,
+      });
     expect(resolve().generateContentConfig.httpOptions?.headers).toEqual({
       'x-model-router-reasoning-effort': 'max',
     });
