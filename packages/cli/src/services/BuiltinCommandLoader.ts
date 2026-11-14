@@ -33,6 +33,7 @@ import { docsCommand } from '../ui/commands/docsCommand.js';
 import { exportSessionCommand } from '../ui/commands/exportSessionCommand.js';
 import { directoryCommand } from '../ui/commands/directoryCommand.js';
 import { editorCommand } from '../ui/commands/editorCommand.js';
+import { effortCommand } from '../ui/commands/effortCommand.js';
 import { extensionsCommand } from '../ui/commands/extensionsCommand.js';
 import { footerCommand } from '../ui/commands/footerCommand.js';
 import { helpCommand } from '../ui/commands/helpCommand.js';
@@ -189,6 +190,7 @@ export class BuiltinCommandLoader implements ICommandLoader {
         : [mcpCommand]),
       memoryCommand(this.config),
       modelCommand,
+      ...(process.env['GEMINI_MODEL_ROUTER'] === '1' ? [effortCommand] : []),
       ...(this.config?.getFolderTrust() ? [permissionsCommand] : []),
       ...(this.config?.isPlanEnabled() ? [planCommand] : []),
       policiesCommand,

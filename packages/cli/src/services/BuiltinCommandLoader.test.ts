@@ -50,7 +50,15 @@ vi.mock('../ui/commands/permissionsCommand.js', async () => {
   };
 });
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  type Mock,
+} from 'vitest';
 import { BuiltinCommandLoader } from './BuiltinCommandLoader.js';
 import { isNightly, type Config } from '@google/gemini-cli-core';
 import { CommandKind } from '../ui/commands/types.js';
@@ -158,6 +166,20 @@ describe('BuiltinCommandLoader', () => {
   let mockConfig: Config;
 
   const restoreCommandMock = restoreCommand as Mock;
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('registers effort and its thinking alias only for the model router', async () => {
+    const loader = new BuiltinCommandLoader(mockConfig);
+    vi.stubEnv('GEMINI_MODEL_ROUTER', '1');
+    const commands = await loader.loadCommands(new AbortController().signal);
+    expect(commands.find((c) => c.name === 'effort')).toMatchObject({
+      altNames: ['thinking'],
+    });
+    vi.stubEnv('GEMINI_MODEL_ROUTER', '');
+    const stock = await loader.loadCommands(new AbortController().signal);
+    expect(stock.find((c) => c.name === 'effort')).toBeUndefined();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
